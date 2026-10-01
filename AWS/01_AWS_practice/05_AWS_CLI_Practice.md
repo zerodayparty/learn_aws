@@ -1,11 +1,5 @@
 # 🟩 AWS CLI로 과제 전체 수행하기 5  
 
-#### ⚫️ 들어가기 전 이해하기  
-
-
-
-
-
 
 <br><br>
 
@@ -60,6 +54,13 @@ EBS가 `available`로 남았다면 정확한 ID를 확인한 뒤에만 실행한
 # 남은 프로젝트 EBS 하나를 영구 삭제한다.  
 aws ec2 delete-volume --volume-id <확인한_PROJECT_VOLUME_ID> --profile "$PROFILE" --region "$REGION"  
 ```
+
+
+
+
+
+
+
 
 <br>
 
@@ -199,6 +200,11 @@ rm -- "$KEY_FILE"
 
 
 
+
+
+
+
+
 <br><br><br>
 
 ## 🟢 22단계: 삭제 최종 검증  
@@ -296,6 +302,14 @@ aws ec2 describe-addresses --query 'Addresses[].[AllocationId,AssociationId,Publ
 
 
 
+
+
+
+
+
+
+
+
 <br><br><br>
 
 ## 🟢 AWS CLI 공통 문법 사전  
@@ -346,10 +360,6 @@ aws ec2 describe-addresses --query 'Addresses[].[AllocationId,AssociationId,Publ
 - 실제 장애의 증상, 가설, 검증, 조치, 결과, 재발 방지를 기록한다.  
 - 삭제 후 Project Tag 기준 VPC, Subnet, IGW, EBS가 남지 않는다.  
 - Elastic IP는 만들지 않았으므로 `미생성`으로 기록한다.  
-
-
-
-
 
 
 

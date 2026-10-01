@@ -1,13 +1,8 @@
 # 🟩 AWS CLI로 과제 전체 수행하기 3  
 
-#### ⚫️ 들어가기 전 이해하기  
 
 
-
-
-
-
-<br><br>
+<br>
 
 ## 🟢 9단계: 현재 내 Public IP 확인  
 
@@ -173,6 +168,69 @@ aws ec2 describe-security-group-rules --filters "Name=group-id,Values=$SG_ID" --
 
 
 
+<br>
+
+### 🟡 실제 log  
+
+```bash
+xxx@xxx ~ % SG_ID="$(aws ec2 create-security-group --group-name "${PROJECT}-sg" --description "HTTP from internet and SSH from my IP" --vpc-id "$VPC_ID" --tag-specifications "ResourceType=security-group,Tags=[{Key=Name,Value=${PROJECT}-sg},{Key=Project,Value=${PROJECT}}]" --query 'GroupId' --output text --profile "$PROFILE" --region "$REGION")"  
+
+
+xxx@xxx ~ % echo $SG_ID  
+sg-05eefbc4478e64123  
+
+
+xxx@xxx ~ % aws ec2 authorize-security-group-ingress --group-id "$SG_ID" --protocol tcp --port 22 --cidr "$MY_IP" --profile "$PROFILE" --region "$REGION"  
+{  
+    "Return": true,  
+    "SecurityGroupRules": [  
+        {  
+            "SecurityGroupRuleId": "sgr-07183eeeb4befed12",  
+            "GroupId": "sg-05eefbc4478e64123",  
+            "GroupOwnerId": "753974168673",  
+            "IsEgress": false,  
+            "IpProtocol": "tcp",  
+            "FromPort": 22,  
+            "ToPort": 22,  
+            "CidrIpv4": "121.135.181.46/32",  
+            "SecurityGroupRuleArn": "arn:aws:ec2:ap-northeast-2:753974168673:security-group-rule/sgr-07183eeeb4befed12"  
+        }  
+    ]  
+}  
+
+
+xxx@xxx ~ % aws ec2 authorize-security-group-ingress --group-id "$SG_ID" --protocol tcp --port 80 --cidr 0.0.0.0/0 --profile "$PROFILE" --region "$REGION"  
+{  
+    "Return": true,  
+    "SecurityGroupRules": [  
+        {  
+            "SecurityGroupRuleId": "sgr-03f6413d0192acee7",  
+            "GroupId": "sg-05eefbc4478e64123",  
+            "GroupOwnerId": "753974168673",  
+            "IsEgress": false,  
+            "IpProtocol": "tcp",  
+            "FromPort": 80,  
+            "ToPort": 80,  
+            "CidrIpv4": "0.0.0.0/0",  
+            "SecurityGroupRuleArn": "arn:aws:ec2:ap-northeast-2:753974168673:security-group-rule/sgr-03f6413d0192acee7"  
+        }  
+    ]  
+}  
+
+
+xxx@xxx ~ % aws ec2 describe-security-group-rules --filters "Name=group-id,Values=$SG_ID" --query 'SecurityGroupRules[?IsEgress==`false`].[IpProtocol,FromPort,ToPort,CidrIpv4]' --output table --profile "$PROFILE" --region "$REGION"  
+------------------------------------------
+|       DescribeSecurityGroupRules       |  
++-----+-----+-----+----------------------+  
+|  tcp|  22 |  22 |  121.135.181.46/32   |  
+|  tcp|  80 |  80 |  0.0.0.0/0           |  
++-----+-----+-----+----------------------+  
+
+```
+
+
+
+
 
 
 
@@ -263,6 +321,25 @@ aws ec2 create-key-pair --key-name "$KEY_NAME" --key-type ed25519 --key-format p
 
 
 
+<br>
+
+### 🟡 실제 log  
+
+```bash
+xxx@xxx ~ % mkdir -p "$KEY_DIR"  
+
+xxx@xxx ~ % umask 077  
+
+xxx@xxx ~ % aws ec2 create-key-pair --key-name "$KEY_NAME" --key-type ed25519 --key-format pem --tag-specifications "ResourceType=key-pair,Tags=[{Key=Name,Value=${KEY_NAME}},{Key=Project,Value=${PROJECT}}]" --query 'KeyMaterial' --output text --profile "$PROFILE" --region "$REGION" > "$KEY_FILE" && chmod 400 "$KEY_FILE" && ls -l "$KEY_FILE"  
+-r--------  1 raiactivity3129  raiactivity3129  388 10  1 19:27 /Users/raiactivity3129/.ssh/learn-aws/aws-basic-lab-key.pem  
+
+```
+
+
+
+
+
+
 
 
 
@@ -343,6 +420,9 @@ aws ec2 describe-instance-type-offerings \
 # Canonical 공식 계정의 최신 Ubuntu 24.04 LTS x86_64 AMI ID를 저장한다.  
 AMI_ID="$(aws ec2 describe-images --owners 099720109477 --filters 'Name=name,Values=ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*' 'Name=state,Values=available' 'Name=architecture,Values=x86_64' 'Name=root-device-type,Values=ebs' --query 'reverse(sort_by(Images,&CreationDate))[0].ImageId' --output text --profile "$PROFILE" --region "$REGION")"  
 
+echo $AMI_ID  
+export AMI_ID=  
+
 # AMI의 실제 이름, 생성일, Architecture, Root Device를 확인한다.  
 aws ec2 describe-images --image-ids "$AMI_ID" --query 'Images[0].[ImageId,Name,CreationDate,Architecture,RootDeviceName]' --output table --profile "$PROFILE" --region "$REGION"  
 
@@ -363,6 +443,44 @@ aws ec2 describe-instance-type-offerings --location-type availability-zone --fil
 | `describe-instance-type-offerings` | 특정 AZ의 Instance Type 제공 여부 확인 |  
 
 Instance Type 제공 여부와 무료 사용 여부는 다르다. 본인 계정의 Free Tier와 Credit 조건을 별도로 확인한다.  
+
+
+
+
+
+<br>
+
+### 🟡 실제 log  
+
+```bash
+xxx@xxx ~ % AMI_ID="$(aws ec2 describe-images --owners 099720109477 --filters 'Name=name,Values=ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*' 'Name=state,Values=available' 'Name=architecture,Values=x86_64' 'Name=root-device-type,Values=ebs' --query 'reverse(sort_by(Images,&CreationDate))[0].ImageId' --output text --profile "$PROFILE" --region "$REGION")"  
+
+xxx@xxx ~ % aws ec2 describe-images --image-ids "$AMI_ID" --query 'Images[0].[ImageId,Name,CreationDate,Architecture,RootDeviceName]' --output table --profile "$PROFILE" --region "$REGION"  
+------------------------------------------------------------------------
+|                            DescribeImages                            |  
++----------------------------------------------------------------------+  
+|  ami-0d222b26b6fb4eeed                                               |  
+|  ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-20260923  |  
+|  2026-09-23T11:57:07.000Z                                            |  
+|  x86_64                                                              |  
+|  /dev/sda1                                                           |  
++----------------------------------------------------------------------+  
+
+xxx@xxx ~ % aws ec2 describe-instance-type-offerings --location-type availability-zone --filters "Name=location,Values=$AZ" "Name=instance-type,Values=$INSTANCE_TYPE" --query 'InstanceTypeOfferings[].[Location,InstanceType]' --output table --profile "$PROFILE" --region "$REGION"  
+---------------------------------
+| DescribeInstanceTypeOfferings |  
++------------------+------------+  
+|  ap-northeast-2a |  t3.micro  |  
++------------------+------------+  
+
+```
+
+
+
+
+
+
+
 
 
 
@@ -434,8 +552,12 @@ aws ec2 wait instance-status-ok \
 # Ubuntu AMI의 Root Device 이름을 저장한다.  
 ROOT_DEVICE_NAME="$(aws ec2 describe-images --image-ids "$AMI_ID" --query 'Images[0].RootDeviceName' --output text --profile "$PROFILE" --region "$REGION")"  
 
+echo $ROOT_DEVICE_NAME  
+
 # Public Subnet에 Ubuntu EC2 한 대를 만들고 Instance ID를 저장한다.  
 INSTANCE_ID="$(aws ec2 run-instances --image-id "$AMI_ID" --instance-type "$INSTANCE_TYPE" --count 1 --subnet-id "$SUBNET_ID" --security-group-ids "$SG_ID" --key-name "$KEY_NAME" --associate-public-ip-address --credit-specification CpuCredits=standard --metadata-options HttpTokens=required,HttpEndpoint=enabled --block-device-mappings "DeviceName=${ROOT_DEVICE_NAME},Ebs={VolumeSize=8,VolumeType=gp3,DeleteOnTermination=true,Encrypted=true}" --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=${PROJECT}-ec2},{Key=Project,Value=${PROJECT}}]" "ResourceType=volume,Tags=[{Key=Name,Value=${PROJECT}-ebs},{Key=Project,Value=${PROJECT}}]" --query 'Instances[0].InstanceId' --output text --profile "$PROFILE" --region "$REGION")"  
+
+echo $INSTANCE_ID  
 
 # EC2가 running 상태가 될 때까지 기다린다.  
 aws ec2 wait instance-running --instance-ids "$INSTANCE_ID" --profile "$PROFILE" --region "$REGION"  
@@ -484,6 +606,27 @@ aws ec2 describe-instances \
   --query "Reservations[0].Instances[0].State.Name" \  
   --output text \  
   --region ap-northeast-2  
+
+
+
+<br>
+
+### 🟡 실제 log  
+
+```bash
+
+xxx@xxx ~ % ROOT_DEVICE_NAME="$(aws ec2 describe-images --image-ids "$AMI_ID" --query 'Images[0].RootDeviceName' --output text --profile "$PROFILE" --region "$REGION")"  
+xxx@xxx ~ % INSTANCE_ID="$(aws ec2 run-instances --image-id "$AMI_ID" --instance-type "$INSTANCE_TYPE" --count 1 --subnet-id "$SUBNET_ID" --security-group-ids "$SG_ID" --key-name "$KEY_NAME" --associate-public-ip-address --credit-specification CpuCredits=standard --metadata-options HttpTokens=required,HttpEndpoint=enabled --block-device-mappings "DeviceName=${ROOT_DEVICE_NAME},Ebs={VolumeSize=8,VolumeType=gp3,DeleteOnTermination=true,Encrypted=true}" --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=${PROJECT}-ec2},{Key=Project,Value=${PROJECT}}]" "ResourceType=volume,Tags=[{Key=Name,Value=${PROJECT}-ebs},{Key=Project,Value=${PROJECT}}]" --query 'Instances[0].InstanceId' --output text --profile "$PROFILE" --region "$REGION")"  
+xxx@xxx ~ % aws ec2 wait instance-running --instance-ids "$INSTANCE_ID" --profile "$PROFILE" --region "$REGION"  
+xxx@xxx ~ % aws ec2 wait instance-status-ok --instance-ids "$INSTANCE_ID" --profile "$PROFILE" --region "$REGION"  
+
+
+```
+
+
+
+
+
 
 
 
@@ -549,8 +692,12 @@ aws ec2 describe-instances --instance-ids "$INSTANCE_ID" --query 'Reservations[0
 # EC2 Public IPv4를 저장한다.  
 PUBLIC_IP="$(aws ec2 describe-instances --instance-ids "$INSTANCE_ID" --query 'Reservations[0].Instances[0].PublicIpAddress' --output text --profile "$PROFILE" --region "$REGION")"  
 
+echo $PUBLIC_IP  
+
 # Root EBS Volume ID를 저장한다.  
 VOLUME_ID="$(aws ec2 describe-instances --instance-ids "$INSTANCE_ID" --query 'Reservations[0].Instances[0].BlockDeviceMappings[0].Ebs.VolumeId' --output text --profile "$PROFILE" --region "$REGION")"  
+
+echo $VOLUME_ID  
 
 # EBS의 상태, 크기, 종류, 암호화를 확인한다.  
 aws ec2 describe-volumes --volume-ids "$VOLUME_ID" --query 'Volumes[0].[VolumeId,State,Size,VolumeType,Encrypted]' --output table --profile "$PROFILE" --region "$REGION"  
@@ -575,6 +722,42 @@ aws ec2 describe-volumes --volume-ids "$VOLUME_ID" --query 'Volumes[0].[VolumeId
 
 
 
+
+<br>
+
+### 🟡 실제 log  
+
+```bash
+xxx@xxx ~ % aws ec2 describe-instances --instance-ids "$INSTANCE_ID" --query 'Reservations[0].Instances[0].[InstanceId,State.Name,InstanceType,PrivateIpAddress,PublicIpAddress,SubnetId,VpcId]' --output table --profile "$PROFILE" --region "$REGION"  
+------------------------------
+|      DescribeInstances     |  
++----------------------------+  
+|  i-04f7febaed27571c8       |  
+|  running                   |  
+|  t3.micro                  |  
+|  10.0.1.68                 |  
+|  43.201.150.176            |  
+|  subnet-0b12ed582eeb6653f  |  
+|  vpc-08c23771d133a47ae     |  
++----------------------------+  
+xxx@xxx ~ % PUBLIC_IP="$(aws ec2 describe-instances --instance-ids "$INSTANCE_ID" --query 'Reservations[0].Instances[0].PublicIpAddress' --output text --profile "$PROFILE" --region "$REGION")"  
+xxx@xxx ~ % echo $PUBLIC_IP  
+43.201.150.176  
+xxx@xxx ~ % VOLUME_ID="$(aws ec2 describe-instances --instance-ids "$INSTANCE_ID" --query 'Reservations[0].Instances[0].BlockDeviceMappings[0].Ebs.VolumeId' --output text --profile "$PROFILE" --region "$REGION")"  
+xxx@xxx ~ % echo $VOLUME_ID  
+vol-0ec6275dd511bb99e  
+xxx@xxx ~ % aws ec2 describe-volumes --volume-ids "$VOLUME_ID" --query 'Volumes[0].[VolumeId,State,Size,VolumeType,Encrypted]' --output table --profile "$PROFILE" --region "$REGION"  
+---------------------------
+|     DescribeVolumes     |  
++-------------------------+  
+|  vol-0ec6275dd511bb99e  |  
+|  in-use                 |  
+|  8                      |  
+|  gp3                    |  
+|  True                   |  
++-------------------------+  
+
+```
 
 
 

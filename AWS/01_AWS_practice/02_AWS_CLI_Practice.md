@@ -361,7 +361,10 @@ aws ec2 create-route --route-table-id "$RT_ID" --destination-cidr-block 0.0.0.0/
 
 # Public Subnet을 Route Table에 연결하고 Association ID를 저장한다.  
 RT_ASSOC_ID="$(aws ec2 associate-route-table --route-table-id "$RT_ID" --subnet-id "$SUBNET_ID" --query 'AssociationId' --output text --profile "$PROFILE" --region "$REGION")"  
+
 ```
+
+
 
 <br>
 
@@ -379,5 +382,26 @@ RT_ASSOC_ID="$(aws ec2 associate-route-table --route-table-id "$RT_ID" --subnet-
 
 
 
+
+
+
+<br>
+
+### 🟡 실제 log
+
+```bash
+# 실제 log
+xxx@xxx ~ % RT_ID="$(aws ec2 create-route-table --vpc-id "$VPC_ID" --tag-specifications "ResourceType=route-table,Tags=[{Key=Name,Value=${PROJECT}-public-rt},{Key=Project,Value=${PROJECT}}]" --query 'RouteTable.RouteTableId' --output text --profile "$PROFILE" --region "$REGION")"
+
+xxx@xxx ~ % echo $RT_ID
+rtb-0946c365525d63f0c
+
+xxx@xxx ~ % aws ec2 create-route --route-table-id "$RT_ID" --destination-cidr-block 0.0.0.0/0 --gateway-id "$IGW_ID" --profile "$PROFILE" --region "$REGION"
+{
+    "Return": true
+}
+
+xxx@xxx ~ % RT_ASSOC_ID="$(aws ec2 associate-route-table --route-table-id "$RT_ID" --subnet-id "$SUBNET_ID" --query 'AssociationId' --output text --profile "$PROFILE" --region "$REGION")"
+```
 
 
