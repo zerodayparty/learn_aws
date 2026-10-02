@@ -1,0 +1,7 @@
+services: # 로컬 모의 검증용 서비스 속성만 덮어쓴다.
+    aws-lab: # 실제 서비스의 비관리자·읽기 전용·권한 제한을 유지한다.
+        network_mode: none # 실제 AWS나 SSH에 연결할 수 없게 한다.
+        environment: # 모의 도구의 경로만 추가한다.
+            LAB_TEST_TMP: /lab-tests # 가짜 도구는 /tmp와 분리한다.
+        tmpfs: # 테스트용 가짜 실행 파일의 공간만 추가한다.
+            - /lab-tests:mode=1777,exec # 테스트 종료 시 가짜 인증과 도구를 모두 제거한다.

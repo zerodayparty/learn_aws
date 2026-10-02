@@ -1,0 +1,33 @@
+services: # 공식 서비스 설정을 정의한다.
+    aws-lab: # 모든 Wrapper가 사용하는 동일 서비스다.
+        build: # Ubuntu 실행 이미지 제작 설정이다.
+            context: . # 비밀정보를 제외한 이 폴더만 빌드한다.
+        image: aws-basic-lab:local # 로컬 제작 이미지 이름이다.
+        env_file: # 실습 설정을 컨테이너에 전달한다.
+            - path: ./config/aws-basic-lab.env # 사용자별 설정 위치다.
+              required: false # 설정 전에도 도움말과 빌드는 가능하게 한다.
+        environment: # 컨테이너 내부 경로만 고정한다.
+            AWS_CONFIG_FILE: /run/aws/config # 실습 전용 프로필 파일이다.
+            AWS_SHARED_CREDENTIALS_FILE: /run/aws/credentials # 읽기 전용 인증파일이다.
+            RUNTIME_DIR: /app/runtime # 상태와 개인키 영구 경로다.
+            HOME: /tmp # 비관리자 실행의 임시 사용자 경로다.
+        volumes: # 호스트의 필요한 폴더만 연결한다.
+            - type: bind # 실습 인증 폴더를 연결한다.
+              source: ./config/aws # 전체 호스트 인증정보를 공유하지 않는다.
+              target: /run/aws # 컨테이너의 고정 인증 위치다.
+              read_only: true # 인증파일을 변경하지 못하게 한다.
+              bind: # 없는 호스트 경로를 자동 생성하지 않는다.
+                  create_host_path: false # 준비 누락을 즉시 알린다.
+            - type: bind # 실행 기록을 영구 저장한다.
+              source: ./runtime # 상태와 개인키 보관 폴더다.
+              target: /app/runtime # 공통 Script의 runtime 경로다.
+              bind: # 잘못된 경로 연결을 막는다.
+                  create_host_path: false # runtime은 사용자가 준비한다.
+        user: "${LAB_UID:-1000}:${LAB_GID:-1000}" # Linux 호스트 파일 소유권만 맞추며 AWS 설정에는 영향이 없다.
+        read_only: true # 이미지 파일시스템의 변경을 제한한다.
+        tmpfs: # 임시 개인키와 오류파일을 메모리 공간에 둔다.
+            - /tmp:mode=1777,noexec,nosuid,nodev # 종료 후 임시 데이터가 남지 않는다.
+        cap_drop: # 불필요한 Linux 관리 권한을 제거한다.
+            - ALL # Docker Socket이나 privileged 모드를 쓰지 않는다.
+        security_opt: # 실행 도중 권한 상승을 제한한다.
+            - no-new-privileges:true # 추가 권한 획득을 막는다.
